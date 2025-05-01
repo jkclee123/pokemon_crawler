@@ -3,4 +3,5 @@
 __pycache__/
 .DS_Store
 venv/
-pokemon/fully_evolved_urls.txt
+pokemon/
+fully_evolved_urls.txt
