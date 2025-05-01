@@ -36,7 +36,8 @@ ELEMENTS_TO_REMOVE = [
     'h2:-soup-contains("Evolution chart")', '.infocard-list-evo',
     'h2:-soup-contains("Pokédex entries")', 'footer',
     '.tabset-moves-game ~ *', '.sv-tabs-tab-list',
-    '.grid-col.span-md-12.span-lg-4:has(h2:-soup-contains("Type defenses"))'
+    '.grid-col.span-md-12.span-lg-4:has(h2:-soup-contains("Type defenses"))', 
+    '.tabset-moves-game .sv-tabs-panel:not(.active):not(.tabset-moves-game-form .sv-tabs-panel)'
 ]
 
 HEADERS_TO_REMOVE = ['National №', 'Height', 'Species', 'Local №']
