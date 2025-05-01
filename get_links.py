@@ -1,39 +1,104 @@
+"""
+Pokemon Evolution Chain Scraper
+
+This script scrapes the Pokemon evolution chains from pokemondb.net
+and saves the URLs of fully evolved Pokemon to a file.
+"""
+
 import requests
 from bs4 import BeautifulSoup
+from typing import Set
+from pathlib import Path
 
-url = "https://pokemondb.net/evolution"
-response = requests.get(url)
-soup = BeautifulSoup(response.text, "html.parser")
+# Constants
+BASE_URL = "https://pokemondb.net"
+EVOLUTION_URL = f"{BASE_URL}/evolution"
+OUTPUT_FILE = "fully_evolved_urls.txt"
 
-# Find all infocard-list-evo divs
-# This is where the Pokémon evolution chains are listed
-infocards_list_evo = soup.find_all("div", class_="infocard-list-evo")
-fully_evolved_hrefs = set()
-
-# Iterate through each evolution chain
-# and find the last Pokémon in the chain
-for evo_chain in infocards_list_evo:
-    infocard_list = evo_chain.find_all("div", class_="infocard")
-    if not infocard_list:
-        continue
-    last_infocard = infocard_list[-1]
+def get_soup(url: str) -> BeautifulSoup:
+    """
+    Fetch and parse the HTML content of a URL.
     
-    # Get the href from the Pokémon's link
-    link = last_infocard.find("a", class_="ent-name")
-    if link and link.get("href"):
-        href = link["href"]
-        # Ensure the href is complete
-        if href.startswith("/pokedex/"):
-            full_href = f"https://pokemondb.net{href}"
-            fully_evolved_hrefs.add(full_href)
+    Args:
+        url: The URL to fetch
+        
+    Returns:
+        BeautifulSoup object of the parsed HTML
+        
+    Raises:
+        requests.RequestException: If the URL fetch fails
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return BeautifulSoup(response.text, "html.parser")
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        raise
 
-# Write the fully evolved hrefs to a file
-with open('fully_evolved_hrefs.txt', 'w') as f:
-    for href in sorted(fully_evolved_hrefs):
-        f.write(f"{href}\n")
+def get_fully_evolved_urls(soup: BeautifulSoup) -> Set[str]:
+    """
+    Extract URLs of fully evolved Pokemon from the evolution chains.
+    
+    Args:
+        soup: BeautifulSoup object of the evolution page
+        
+    Returns:
+        Set of URLs for fully evolved Pokemon
+    """
+    fully_evolved_hrefs = set()
+    
+    # Find all evolution chain containers
+    for evo_chain in soup.find_all("div", class_="infocard-list-evo"):
+        # Get all Pokemon cards in this chain
+        infocard_list = evo_chain.find_all("div", class_="infocard")
+        if not infocard_list:
+            continue
+            
+        # Get the last Pokemon in the chain (fully evolved)
+        last_infocard = infocard_list[-1]
+        link = last_infocard.find("a", class_="ent-name")
+        
+        if link and link.get("href"):
+            href = link["href"]
+            if href.startswith("/pokedex/"):
+                full_href = f"{BASE_URL}{href}"
+                fully_evolved_hrefs.add(full_href)
+    
+    return fully_evolved_hrefs
 
-'''
-# Print the collected hrefs
-for href in fully_evolved_hrefs:
-    print(href)
-'''
+def save_urls_to_file(urls: Set[str], filename: str) -> None:
+    """
+    Save the collected URLs to a file in sorted order.
+    
+    Args:
+        urls: Set of URLs to save
+        filename: Name of the output file
+    """
+    output_path = Path(filename)
+    try:
+        with output_path.open('w') as f:
+            f.write("\n".join(sorted(urls)))
+        print(f"Successfully saved {len(urls)} URLs to {filename}")
+    except IOError as e:
+        print(f"Error writing to {filename}: {e}")
+        raise
+
+def main() -> None:
+    """Main execution function."""
+    try:
+        # Get and parse the evolution page
+        soup = get_soup(EVOLUTION_URL)
+        
+        # Extract fully evolved Pokemon URLs
+        fully_evolved_urls = get_fully_evolved_urls(soup)
+        
+        # Save URLs to file
+        save_urls_to_file(fully_evolved_urls, OUTPUT_FILE)
+        
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise
+
+if __name__ == "__main__":
+    main()
